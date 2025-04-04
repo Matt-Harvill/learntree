@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Add New Learning Item</h2>
+<form method="POST">
+    <div style="margin-bottom: 15px;">
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name" required style="width: 100%; padding: 8px;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label for="media_type">Type of Media:</label><br>
+        <input type="text" id="media_type" name="media_type" required style="width: 100%; padding: 8px;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label for="date_started">Date Started:</label><br>
+        <input type="date" id="date_started" name="date_started" required style="width: 100%; padding: 8px;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label for="date_finished">Date Finished (optional):</label><br>
+        <input type="date" id="date_finished" name="date_finished" style="width: 100%; padding: 8px;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label for="takeaways">Takeaways (optional):</label><br>
+        <textarea id="takeaways" name="takeaways" style="width: 100%; padding: 8px; height: 100px;"></textarea>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label for="inspiration">Inspiration (optional - enter name of parent item):</label><br>
+        <input type="text" id="inspiration" name="inspiration" style="width: 100%; padding: 8px;">
+    </div>
+
+    <button type="submit"
+        style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px;">Add
+        Item</button>
+</form>
+{% endblock %}
