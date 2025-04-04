@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from dateutil.parser import parse
+from collections import defaultdict
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///learning_tree.db'
@@ -20,10 +21,30 @@ class LearningItem(db.Model):
 with app.app_context():
     db.create_all()
 
+def organize_items_hierarchically(items):
+    # Create a dictionary to store items by their inspiration_id
+    items_by_parent = defaultdict(list)
+    root_items = []
+    
+    # First pass: organize items by their parent
+    for item in items:
+        if item.inspiration_id is None:
+            root_items.append(item)
+        else:
+            items_by_parent[item.inspiration_id].append(item)
+    
+    # Sort items by date_started
+    root_items.sort(key=lambda x: x.date_started)
+    for parent_id in items_by_parent:
+        items_by_parent[parent_id].sort(key=lambda x: x.date_started)
+    
+    return root_items, items_by_parent
+
 @app.route('/')
 def index():
     items = LearningItem.query.all()
-    return render_template('index.html', items=items)
+    root_items, items_by_parent = organize_items_hierarchically(items)
+    return render_template('index.html', root_items=root_items, items_by_parent=items_by_parent)
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_item():

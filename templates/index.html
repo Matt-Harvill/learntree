@@ -1,29 +1,44 @@
 {% extends "base.html" %}
 
+{% macro render_generation(items, items_by_parent, generation=0) %}
+<div class="generation">
+    {% for item in items %}
+    <div class="item {% if items_by_parent[item.id] %}has-children{% endif %}">
+        <h3>{{ item.name }}</h3>
+        <div class="meta">
+            <p>Type: {{ item.media_type }}</p>
+            <p>Started: {{ item.date_started.strftime('%Y-%m-%d') }}</p>
+            {% if item.date_finished %}
+            <p>Finished: {{ item.date_finished.strftime('%Y-%m-%d') }}</p>
+            {% endif %}
+            {% if item.inspiration %}
+            <p>Inspired by: {{ item.inspiration.name }}</p>
+            {% endif %}
+        </div>
+        {% if item.takeaways %}
+        <div class="takeaways">
+            <strong>Takeaways:</strong>
+            <p>{{ item.takeaways }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% set next_generation = [] %}
+{% for item in items %}
+{% if items_by_parent[item.id] %}
+{% set _ = next_generation.extend(items_by_parent[item.id]) %}
+{% endif %}
+{% endfor %}
+{% if next_generation %}
+{{ render_generation(next_generation, items_by_parent, generation + 1) }}
+{% endif %}
+{% endmacro %}
+
 {% block content %}
 <div class="tree-container">
     <div class="tree-content">
-        {% for item in items %}
-        <div class="item">
-            <h3>{{ item.name }}</h3>
-            <div class="meta">
-                <p>Type: {{ item.media_type }}</p>
-                <p>Started: {{ item.date_started.strftime('%Y-%m-%d') }}</p>
-                {% if item.date_finished %}
-                <p>Finished: {{ item.date_finished.strftime('%Y-%m-%d') }}</p>
-                {% endif %}
-                {% if item.inspiration %}
-                <p>Inspired by: {{ item.inspiration.name }}</p>
-                {% endif %}
-            </div>
-            {% if item.takeaways %}
-            <div class="takeaways">
-                <strong>Takeaways:</strong>
-                <p>{{ item.takeaways }}</p>
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
+        {{ render_generation(root_items, items_by_parent) }}
     </div>
 </div>
 {% endblock %}

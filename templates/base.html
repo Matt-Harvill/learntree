@@ -30,13 +30,22 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            transform: translate(-50%, -50%) scale(1);
             display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 50px;
+            flex-direction: column;
+            gap: 100px;
             padding: 20px;
             transition: transform 0.1s ease-out;
+        }
+
+        .generation {
+            display: flex;
+            flex-direction: row;
+            gap: 50px;
+            align-items: flex-start;
+            min-height: 200px;
+            position: relative;
         }
 
         .item {
@@ -44,22 +53,37 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            min-width: 250px;
             position: relative;
+            min-width: 250px;
         }
 
-        .item::after {
+        .item.has-children::after {
             content: '';
             position: absolute;
-            right: -25px;
-            top: 50%;
-            width: 25px;
-            height: 2px;
+            bottom: -50px;
+            left: 50%;
+            width: 2px;
+            height: 50px;
             background: #ddd;
         }
 
-        .item:last-child::after {
-            display: none;
+        .children-connector {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .children-connector::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: #ddd;
         }
 
         .item h3 {
@@ -94,70 +118,141 @@
         .add-button:hover {
             background: #45a049;
         }
+
+        .zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .zoom-button {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .zoom-button:hover {
+            background: #f5f5f5;
+        }
+
+        .zoom-level {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
     </style>
 </head>
 
 <body>
     <a href="{{ url_for('add_item') }}" class="add-button">Add New Learning Item</a>
+    <div class="zoom-controls">
+        <button class="zoom-button" onclick="zoomOut()">-</button>
+        <button class="zoom-button" onclick="zoomIn()">+</button>
+    </div>
+    <div class="zoom-level" id="zoomLevel">100%</div>
     {% block content %}{% endblock %}
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const container = document.querySelector('.tree-container');
-            const content = document.querySelector('.tree-content');
-            let isDragging = false;
-            let startX, startY;
-            let scrollLeft, scrollTop;
+        let scale = 1;
+        const minScale = 0.1;
+        const maxScale = 3;
+        const scaleStep = 0.1;
+        const content = document.querySelector('.tree-content');
+        const zoomLevel = document.getElementById('zoomLevel');
+        let isDragging = false;
+        let startX, startY;
+        let scrollLeft, scrollTop;
 
-            container.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                startX = e.pageX - content.offsetLeft;
-                startY = e.pageY - content.offsetTop;
-                scrollLeft = content.scrollLeft;
-                scrollTop = content.scrollTop;
-            });
+        function updateZoom() {
+            content.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            zoomLevel.textContent = `${Math.round(scale * 100)}%`;
+        }
 
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                const x = e.pageX - content.offsetLeft;
-                const y = e.pageY - content.offsetTop;
-                const walkX = (x - startX) * 2;
-                const walkY = (y - startY) * 2;
-                content.style.transform = `translate(calc(-50% + ${walkX}px), calc(-50% + ${walkY}px))`;
-            });
+        function zoomIn() {
+            scale = Math.min(maxScale, scale + scaleStep);
+            updateZoom();
+        }
 
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
+        function zoomOut() {
+            scale = Math.max(minScale, scale - scaleStep);
+            updateZoom();
+        }
 
-            // Handle arrow key navigation
-            document.addEventListener('keydown', (e) => {
-                const step = 50;
-                let currentTransform = content.style.transform;
-                let [x, y] = currentTransform.match(/-?\d+/g) || ['-50', '-50'];
-                x = parseInt(x);
-                y = parseInt(y);
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.ctrlKey || e.metaKey) {
+                const delta = e.deltaY > 0 ? -scaleStep : scaleStep;
+                scale = Math.max(minScale, Math.min(maxScale, scale + delta));
+                updateZoom();
+            }
+        }, { passive: false });
 
-                switch (e.key) {
-                    case 'ArrowLeft':
-                        x -= step;
-                        break;
-                    case 'ArrowRight':
-                        x += step;
-                        break;
-                    case 'ArrowUp':
-                        y -= step;
-                        break;
-                    case 'ArrowDown':
-                        y += step;
-                        break;
-                    default:
-                        return;
-                }
+        document.querySelector('.tree-container').addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.pageX - content.offsetLeft;
+            startY = e.pageY - content.offsetTop;
+            scrollLeft = content.scrollLeft;
+            scrollTop = content.scrollTop;
+        });
 
-                content.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
-            });
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const x = e.pageX - content.offsetLeft;
+            const y = e.pageY - content.offsetTop;
+            const walkX = (x - startX) * 2;
+            const walkY = (y - startY) * 2;
+            content.style.transform = `translate(calc(-50% + ${walkX}px), calc(-50% + ${walkY}px)) scale(${scale})`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Handle arrow key navigation
+        document.addEventListener('keydown', (e) => {
+            const step = 50;
+            let currentTransform = content.style.transform;
+            let [x, y] = currentTransform.match(/-?\d+/g) || ['-50', '-50'];
+            x = parseInt(x);
+            y = parseInt(y);
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    x -= step;
+                    break;
+                case 'ArrowRight':
+                    x += step;
+                    break;
+                case 'ArrowUp':
+                    y -= step;
+                    break;
+                case 'ArrowDown':
+                    y += step;
+                    break;
+                case '+':
+                case '=':
+                    zoomIn();
+                    break;
+                case '-':
+                    zoomOut();
+                    break;
+                default:
+                    return;
+            }
+
+            content.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${scale})`;
         });
     </script>
 </body>
